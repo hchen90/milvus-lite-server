@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  python-app:
+    build: .
+    container_name: python-service
+    restart: always
+    ports:
+      - 8000:8000/tcp # 替换成你服务实际需要的端口
+    mem_limit: 800M   # 限制内存为 800M, milvus和embedding可能需要更多内存
+    environment:
+      - PYTHONUNBUFFERED=1
