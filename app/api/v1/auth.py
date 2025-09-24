@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.services.auth import get_current_user
+from app.core.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,19 @@ async def verify_token(current_user: dict = Depends(get_current_user)):
     """
     验证 JWT 令牌
     
-    需要在请求头中提供有效的 Bearer token
+    需要在请求头中提供有效的 Bearer token（当JWT验证启用时）
     """
     try:
         logger.info(f"令牌验证成功: {current_user.get('username', 'unknown')}")
+        
+        # 如果JWT验证被禁用，返回相应的提示信息
+        if not config.JWT_ENABLED:
+            return TokenVerifyResponse(
+                success=True,
+                message="JWT验证已禁用，允许匿名访问",
+                username=current_user.get("username"),
+                expires_at=current_user.get("token_exp")
+            )
         
         return TokenVerifyResponse(
             success=True,
@@ -58,14 +68,17 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
     """
     获取用户信息
     
-    需要在请求头中提供有效的 Bearer token
+    需要在请求头中提供有效的 Bearer token（当JWT验证启用时）
     """
     try:
         logger.info(f"获取用户信息: {current_user.get('username', 'unknown')}")
         
+        # 如果JWT验证被禁用，返回相应的提示信息
+        message = "JWT验证已禁用，返回匿名用户信息" if not config.JWT_ENABLED else "用户信息获取成功"
+        
         return {
             "success": True,
-            "message": "用户信息获取成功",
+            "message": message,
             "user": {
                 "username": current_user.get("username"),
                 "email": current_user.get("email"),

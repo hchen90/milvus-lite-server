@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 # HTTP Bearer Token 方案
 security = HTTPBearer()
+# HTTP Bearer Token 方案（可选）
+optional_security = HTTPBearer(auto_error=False)
 
 
 class AuthService:
@@ -48,11 +50,29 @@ class AuthService:
             )
 
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security)) -> Dict[str, Any]:
     """
     获取当前用户信息的依赖函数
     用于 FastAPI 路由的依赖注入
     """
+    # 如果JWT验证被禁用，返回默认用户信息
+    if not config.JWT_ENABLED:
+        logger.info("JWT validation is disabled, allowing access without authentication")
+        return {
+            "username": "anonymous",
+            "email": None,
+            "full_name": "Anonymous User",
+            "token_exp": None
+        }
+    
+    # JWT验证启用时，必须提供认证头
+    if not credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials required",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    
     token = credentials.credentials
     payload = AuthService.verify_token(token)
     
@@ -73,11 +93,20 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     }
 
 
-def get_optional_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> Optional[Dict[str, Any]]:
+def get_optional_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security)) -> Optional[Dict[str, Any]]:
     """
     获取当前用户信息的可选依赖函数
     如果没有提供认证头，返回 None
     """
+    # 如果JWT验证被禁用，返回默认用户信息
+    if not config.JWT_ENABLED:
+        return {
+            "username": "anonymous",
+            "email": None,
+            "full_name": "Anonymous User",
+            "token_exp": None
+        }
+    
     if not credentials:
         return None
     

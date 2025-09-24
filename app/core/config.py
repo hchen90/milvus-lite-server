@@ -22,6 +22,7 @@ class Config:
     MILVUS_PATH: str = os.getenv("MILVUS_PATH", f"{APP_NAME}.db")
     
     # JWT 配置
+    JWT_ENABLED: bool = os.getenv("JWT_ENABLED", "True").lower() in ("true", "1", "yes")
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "your-super-secret-jwt-key-change-this-in-production")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRE_MINUTES: int = int(os.getenv("JWT_EXPIRE_MINUTES", "30"))

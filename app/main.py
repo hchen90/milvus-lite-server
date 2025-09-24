@@ -91,7 +91,8 @@ async def root():
     return {
         "message": f"Welcome to {config.APP_NAME}",
         "version": config.VERSION,
-        "server": config.get_server_address()
+        "server": config.get_server_address(),
+        "jwt_enabled": config.JWT_ENABLED
     }
 
 
@@ -101,7 +102,8 @@ async def health_check():
     return {
         "status": "healthy",
         "app_name": config.APP_NAME,
-        "version": config.VERSION
+        "version": config.VERSION,
+        "jwt_enabled": config.JWT_ENABLED
     }
 
 
