@@ -12,7 +12,7 @@ sys.path.insert(0, project_root)
 
 from app.core.config import config
 from app.services.milvusdb import setup_milvus_collection, create_index
-from app.api.v1 import vector_save, vector_search, embedding
+from app.api.v1 import vector_save, vector_search, embedding, auth
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -79,6 +79,7 @@ def get_milvus_client():
 
 
 # 注册API路由
+app.include_router(auth.router, prefix="/api/v1", tags=["authentication"])
 app.include_router(vector_save.router, prefix="/api/v1", tags=["vector-save"])
 app.include_router(vector_search.router, prefix="/api/v1", tags=["vector-search"])
 app.include_router(embedding.router, prefix="/api/v1", tags=["embedding"])

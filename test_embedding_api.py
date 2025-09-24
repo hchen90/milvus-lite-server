@@ -6,6 +6,35 @@
 import requests
 import json
 import sys
+import jwt
+from datetime import datetime, timedelta, timezone
+
+
+# JWT 配置（应与服务器配置一致）
+JWT_SECRET_KEY = "your-super-secret-jwt-key-change-this-in-production"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = 30
+
+
+def create_test_token(username: str = "test_user", expires_minutes: int = 30) -> str:
+    """创建测试用的 JWT 令牌"""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    
+    payload = {
+        "sub": username,
+        "email": f"{username}@example.com", 
+        "full_name": f"Test User {username.title()}",
+        "exp": expire
+    }
+    
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def get_auth_headers():
+    """获取包含JWT令牌的认证请求头"""
+    token = create_test_token("embedding_test_user")
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_single_embedding():
@@ -17,8 +46,12 @@ def test_single_embedding():
         "content": "这是一个测试文本，用于生成嵌入向量。"
     }
     
+    # 添加JWT认证头
+    headers = get_auth_headers()
+    headers["Content-Type"] = "application/json"
+    
     try:
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=data, headers=headers)
         
         if response.status_code == 200:
             result = response.json()
@@ -54,8 +87,12 @@ def test_chunked_embeddings():
         "content": long_text.strip()
     }
     
+    # 添加JWT认证头
+    headers = get_auth_headers()
+    headers["Content-Type"] = "application/json"
+    
     try:
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=data, headers=headers)
         
         if response.status_code == 200:
             result = response.json()
@@ -101,6 +138,11 @@ def test_health_check():
 def main():
     """主函数"""
     print("开始测试嵌入API端点...")
+    print("🔐 创建JWT认证令牌...")
+    
+    # 创建并显示JWT令牌信息
+    token = create_test_token("embedding_test_user")
+    print(f"   令牌已创建: {token[:30]}...")
     
     # 先检查服务器是否运行
     if not test_health_check():

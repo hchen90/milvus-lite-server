@@ -1,9 +1,10 @@
 import logging
-from fastapi import APIRouter, HTTPException, Form
+from fastapi import APIRouter, HTTPException, Form, Depends
 from typing import Annotated
 
 from app.api.models import DocumentSaveRequest, DocumentSaveResponse, ErrorResponse
 from app.services.milvusdb import insert_data
+from app.services.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,8 @@ def get_milvus_client():
 async def save_document(
     post_id: Annotated[str, Form(description="文档唯一标识符")],
     title: Annotated[str, Form(description="文档标题")],
-    content: Annotated[str, Form(description="文档内容，支持多行文本")]
+    content: Annotated[str, Form(description="文档内容，支持多行文本")],
+    current_user: dict = Depends(get_current_user)
 ):
     """
     保存文档到向量数据库
@@ -74,7 +76,7 @@ async def save_document(
                 detail="title长度不能超过200个字符"
             )
         
-        logger.info(f"开始保存文档: post_id={post_id}, title={title}, content_length={len(content)}")
+        logger.info(f"开始保存文档: post_id={post_id}, title={title}, content_length={len(content)}, 用户: {current_user.get('username')}")
         
         # 获取Milvus客户端
         client = get_milvus_client()
@@ -126,14 +128,14 @@ async def save_document(
              },
              summary="通过JSON保存文档到向量数据库",
              description="通过JSON格式提交文档数据")
-async def save_document_json(request: DocumentSaveRequest):
+async def save_document_json(request: DocumentSaveRequest, current_user: dict = Depends(get_current_user)):
     """
     通过JSON格式保存文档到向量数据库
     
     这是一个备用接口，支持JSON格式的请求体
     """
     try:
-        logger.info(f"开始保存文档(JSON): post_id={request.post_id}, title={request.title}, content_length={len(request.content)}")
+        logger.info(f"开始保存文档(JSON): post_id={request.post_id}, title={request.title}, content_length={len(request.content)}, 用户: {current_user.get('username')}")
         
         # 获取Milvus客户端
         client = get_milvus_client()

@@ -5,8 +5,36 @@
 import requests
 import json
 import time
+import jwt
+from datetime import datetime, timedelta, timezone
 
 BASE_URL = "http://127.0.0.1:8000"
+
+# JWT 配置（应与服务器配置一致）
+JWT_SECRET_KEY = "your-super-secret-jwt-key-change-this-in-production"
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_MINUTES = 30
+
+
+def create_test_token(username: str = "test_user", expires_minutes: int = 30) -> str:
+    """创建测试用的 JWT 令牌"""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    
+    payload = {
+        "sub": username,
+        "email": f"{username}@example.com", 
+        "full_name": f"Test User {username.title()}",
+        "exp": expire
+    }
+    
+    token = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return token
+
+
+def get_auth_headers():
+    """获取包含JWT令牌的认证请求头"""
+    token = create_test_token("api_demo_user")
+    return {"Authorization": f"Bearer {token}"}
 
 def test_health():
     """测试健康检查接口"""
@@ -39,7 +67,9 @@ def test_save_document():
         """.strip()
     }
     
-    response = requests.post(f"{BASE_URL}/api/v1/documents", data=test_data)
+    # 添加JWT认证头
+    headers = get_auth_headers()
+    response = requests.post(f"{BASE_URL}/api/v1/documents", data=test_data, headers=headers)
     print(f"状态码: {response.status_code}")
     print(f"响应: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
     print()
@@ -70,7 +100,10 @@ def test_save_document_json():
         """.strip()
     }
     
-    headers = {"Content-Type": "application/json"}
+    # 添加JWT认证头和Content-Type
+    headers = get_auth_headers()
+    headers["Content-Type"] = "application/json"
+    
     response = requests.post(f"{BASE_URL}/api/v1/documents/json", 
                            json=test_data, headers=headers)
     print(f"状态码: {response.status_code}")
@@ -83,6 +116,9 @@ def test_search_documents():
     """测试搜索文档接口"""
     print("🔍 测试搜索文档接口...")
     
+    # 获取认证头
+    auth_headers = get_auth_headers()
+    
     # 测试查询
     test_queries = [
         "深度学习和神经网络",
@@ -94,7 +130,8 @@ def test_search_documents():
     for query in test_queries:
         print(f"查询: {query}")
         params = {"query": query, "limit": 3}
-        response = requests.get(f"{BASE_URL}/api/v1/documents/search", params=params)
+        response = requests.get(f"{BASE_URL}/api/v1/documents/search", 
+                              params=params, headers=auth_headers)
         print(f"状态码: {response.status_code}")
         
         if response.status_code == 200:
@@ -119,7 +156,10 @@ def test_search_documents_json():
         "limit": 5
     }
     
-    headers = {"Content-Type": "application/json"}
+    # 添加JWT认证头和Content-Type
+    headers = get_auth_headers()
+    headers["Content-Type"] = "application/json"
+    
     response = requests.post(f"{BASE_URL}/api/v1/documents/search", 
                            json=test_data, headers=headers)
     print(f"状态码: {response.status_code}")
@@ -132,6 +172,11 @@ def main():
     print("=" * 60)
     
     try:
+        # 0. 测试JWT令牌创建和验证
+        print("🔐 创建并验证JWT令牌...")
+        token = create_test_token("api_demo_user")
+        print(f"   令牌已创建: {token[:30]}...")
+        
         # 1. 测试健康检查
         test_health()
         

@@ -1,5 +1,11 @@
 import logging
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from typing import Optional
+
+from app.api.models import DocumentSearchRequest, DocumentSearchResponse, SearchResult, ErrorResponse
+from app.services.milvusdb import search_data
+from app.services.auth import get_current_user
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional
 
 from app.api.models import DocumentSearchRequest, DocumentSearchResponse, SearchResult, ErrorResponse
@@ -26,7 +32,8 @@ def get_milvus_client():
             description="根据查询文本在向量数据库中搜索相似的文档内容")
 async def search_documents(
     query: str = Query(..., description="搜索查询文本", min_length=1),
-    limit: int = Query(default=5, description="返回结果数量限制", ge=1, le=100)
+    limit: int = Query(default=5, description="返回结果数量限制", ge=1, le=100),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     搜索相似文档
@@ -46,7 +53,7 @@ async def search_documents(
         
         query = query.strip()
         
-        logger.info(f"开始搜索文档: query={query[:100]}..., limit={limit}")
+        logger.info(f"开始搜索文档: query={query[:100]}..., limit={limit}, 用户: {current_user.get('username')}")
         
         # 获取Milvus客户端
         client = get_milvus_client()
@@ -105,14 +112,14 @@ async def search_documents(
              },
              summary="通过JSON搜索相似文档",
              description="通过JSON格式的请求体搜索相似文档")
-async def search_documents_json(request: DocumentSearchRequest):
+async def search_documents_json(request: DocumentSearchRequest, current_user: dict = Depends(get_current_user)):
     """
     通过JSON格式搜索相似文档
     
     这是一个备用接口，支持JSON格式的请求体
     """
     try:
-        logger.info(f"开始搜索文档(JSON): query={request.query[:100]}..., limit={request.limit}")
+        logger.info(f"开始搜索文档(JSON): query={request.query[:100]}..., limit={request.limit}, 用户: {current_user.get('username')}")
         
         # 获取Milvus客户端
         client = get_milvus_client()

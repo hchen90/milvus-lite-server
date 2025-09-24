@@ -1,9 +1,10 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any
 
 from app.api.models import ErrorResponse
 from app.services.embedding import get_embedding_from_content, get_embeddings_from_content
+from app.services.auth import get_current_user
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,7 @@ class ChunkedEmbeddingResponse(BaseModel):
              },
              summary="生成单个内容的嵌入向量",
              description="为给定的文本内容生成嵌入向量，适用于短文本或不需要分块的内容")
-async def get_single_embedding(request: EmbeddingRequest):
+async def get_single_embedding(request: EmbeddingRequest, current_user: dict = Depends(get_current_user)):
     """
     生成单个内容的嵌入向量
     
@@ -60,7 +61,7 @@ async def get_single_embedding(request: EmbeddingRequest):
         
         content = request.content.strip()
         
-        logger.info(f"开始生成单个嵌入向量，内容长度: {len(content)}")
+        logger.info(f"开始生成单个嵌入向量，内容长度: {len(content)}, 用户: {current_user.get('username')}")
         
         # 调用嵌入服务
         embedding = get_embedding_from_content(content)
@@ -105,7 +106,7 @@ async def get_single_embedding(request: EmbeddingRequest):
              },
              summary="生成分块内容的嵌入向量",
              description="为给定的文本内容生成分块嵌入向量，适用于长文本处理")
-async def get_chunked_embeddings(request: EmbeddingRequest):
+async def get_chunked_embeddings(request: EmbeddingRequest, current_user: dict = Depends(get_current_user)):
     """
     生成分块内容的嵌入向量
     
@@ -123,7 +124,7 @@ async def get_chunked_embeddings(request: EmbeddingRequest):
         
         content = request.content.strip()
         
-        logger.info(f"开始生成分块嵌入向量，内容长度: {len(content)}")
+        logger.info(f"开始生成分块嵌入向量，内容长度: {len(content)}, 用户: {current_user.get('username')}")
         
         # 调用嵌入服务
         embeddings = get_embeddings_from_content(content)
