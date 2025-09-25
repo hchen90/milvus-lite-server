@@ -15,7 +15,3 @@ dependencies = [
     "uvicorn[standard]>=0.35.0",
     "PyJWT>=2.8.0",
 ]
-
-[[tool.uv.index]]
-url = "https://mirrors.aliyun.com/pypi/simple"
-default = true
